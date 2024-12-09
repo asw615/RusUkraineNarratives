@@ -1,8 +1,8 @@
 # Comparing Narratives and Discourses in the Russo-Ukrainian War
 
 ## Authors
-- Søren Søndergaard Meiner (SM), 202205445@post.au.dk  
-- Thorkild Kappel (TK), 202207326@post.au.dk  
+- Søren Søndergaard Meiner (SM)
+- Thorkild Kappel (TK)
 **School of Communication and Culture, Aarhus University**  
 
 ---
