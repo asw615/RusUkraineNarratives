@@ -6,6 +6,7 @@
 **School of Communication and Culture, Aarhus University**  
 
 ---
+##**Note that the repo is a bit cluttered and does not include data since the files are quite large. The same data can be scraped with these scripts**
 
 ## Project Overview
 This project investigates the narratives and discourses surrounding the Russo-Ukrainian War by analyzing four datasets:
