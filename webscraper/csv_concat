@@ -1,0 +1,20 @@
+import pandas as pd
+import glob
+import json
+from fnmatch import fnmatch
+
+# Making an empty table
+df_list = []
+#loading in data from the database and concat them into a single dataframe
+for curr_file in glob.glob("json_data/*.json"):
+    if fnmatch(curr_file, "*www.kyivpost.com*") or fnmatch(curr_file, "*tsn.ua*") or fnmatch(curr_file, "*kyivindependent.com*"):
+        json_data = json.load(open(curr_file))
+        df = pd.DataFrame(json_data)
+        df_list.append(df)
+
+pdf = pd.concat(df_list)
+
+# Removing duplicates
+pdf_no_duplicates = pdf.drop_duplicates(subset=['url'])
+
+pdf_no_duplicates.to_csv("csv_data/df_ukraine.csv",index=False)

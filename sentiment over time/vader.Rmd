@@ -1,0 +1,86 @@
+---
+title: "sentiment"
+author: "Søren"
+date: "2022-12-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+library(dplyr)
+install.packages("patchwork")
+library(patchwork)
+
+# Load the text data into a data frame
+df_news_ukraine <- read.csv ('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/sentiment over time/sentiment_data/sent_ukraine_news.csv')
+df_news_ukraine$date_publish <- as.Date(df_news_ukraine$date_publish, format = "%Y-%m-%d %H:%M:%S")
+
+# Create the plot
+news_ukraine <- ggplot(df_news_ukraine, aes(x = date_publish, y = compound)) +
+  geom_smooth(method = "loess", se = TRUE)+ 
+  labs(title="Ukranian news sentiment", x="Date", y="Compound sentiment")
+
+```
+
+```{r}
+# Load the text data into a data frame
+df_news_russia <- read.csv ('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/sentiment over time/sentiment_data/sent_russia_news.csv')
+df_news_russia$date_publish <- as.Date(df_news_russia$date_publish, format = "%Y-%m-%d %H:%M:%S")
+
+# Create the plot
+news_russia <- ggplot(df_news_russia, aes(x = date_publish, y = compound)) +
+  geom_smooth(method = "loess", se = TRUE) + 
+  labs(title="Russian news sentiment", x="Date", y="Compound sentiment")
+```
+
+```{r}
+# Load the text data into a data frame
+df_tele_russia <- read.csv ('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/sentiment over time/sentiment_data/sent_russia_tele.csv')
+df_tele_russia$date_publish <- as.Date(df_tele_russia$date_publish, format = "%Y-%m-%dT%H:%M:%SZ")
+df_tele_russia$source_domain <- as.character(df_tele_russia$source_domain)
+
+# Select a subset of the data with dates from 2022
+df_tele_russia_subset <- df_tele_russia %>%
+  filter(date_publish >= as.Date("2022-02-24")) %>%
+  filter(source_domain != "{'_': 'PeerChannel', 'channel_id': 1736895964}") %>% 
+  sample_frac(0.7)
+
+# Create the plot
+tele_russia <- ggplot(df_tele_russia_subset, aes(x = date_publish, y = compound)) +
+  geom_smooth(method = "loess", se = TRUE) + 
+  labs(title="Russian Telegram sentiment", x="Date", y="Compound sentiment")
+```
+
+```{r}
+# Load the text data into a data frame
+df_tele_ukraine <- read.csv ('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/sentiment over time/sentiment_data/sent_ukraine_tele.csv')
+df_tele_ukraine$date_publish <- as.Date(df_tele_ukraine$date_publish, format = "%Y-%m-%dT%H:%M:%SZ")
+
+# Select a subset of the data with dates from 2022
+df_tele_ukraine_subset <- df_tele_ukraine %>%
+  filter(date_publish >= as.Date("2022-02-24")) %>%
+  sample_frac(0.3)
+
+# Create the plot
+tele_ukraine <- ggplot(df_tele_ukraine_subset, aes(x = date_publish, y = compound)) +
+  geom_smooth(method = "loess", se = TRUE) + 
+  labs(title="Ukranian Telegram sentiment", x="Date", y="Compound sentiment")
+```
+
+```{r}
+# Combine the plots into a single plot
+p <- news_russia + news_ukraine + tele_russia + tele_ukraine
+
+# Save the plot to a PNG file
+ggsave("multiple_plots.png", plot = p, width = 8, height = 6)
+```
+
+```{r}
+citation()
+```
+

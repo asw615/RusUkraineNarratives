@@ -1,0 +1,164 @@
+---
+title: "TF-IDF, titles"
+author: "Søren"
+date: "2022-12-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pacman)
+p_load(dplyr, janeaustenr, tidytext, tidyverse, forcats, tm, lubridate)
+setwd('.')
+```
+
+```{r}
+# STOP WORDS
+stop_words <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/TD-IDF/stop_words.csv")
+
+```
+
+```{r}
+# For making a new ready for python csv
+tele_trans <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_ukraine_translate.csv")
+
+df2 <- tele_trans[(72409:106254),] # CHANGE THE 2 NUMBERS!
+df2 = subset(df2, select = c(id,date, message, views, forwards, edit_date, post_author, peer_id))
+
+write_csv(df2, "/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_ukraine_left.csv")
+
+# For collecting translated data
+tele_trans <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_translate.csv")
+df2 <- tele_trans[-(10083:62016),] # CHANGE THE 2 NUMBERS!
+write_csv(df2, "/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_translate03.csv")
+```
+
+```{r}
+# Loading in data from the news articles and the telegram channels 
+news_russia <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/data/news absa/web_summary_russia-kopi.csv")
+news_ukraine <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/data/news absa/web_summary_ukraine-kopi.csv")
+tele_ukraine <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/data/telegram absa/summary_ukraine-kopi.csv")
+tele_russia <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/data/telegram absa/summary_russia-kopi.csv")
+
+
+# Adding in their source in a new column
+news_ukraine <- mutate(news_ukraine, source = "Ukranian News Articles")
+tele_ukraine <- mutate(tele_ukraine, source = "Ukranian Telegram Messages")
+news_russia <- mutate(news_russia, source = "Russian News Articles")
+tele_russia <- mutate(tele_russia, source = "Russian Telegram Messages")
+
+
+# Adding both newsarticles and telegram channels to the same dataset
+df = rbind(news_russia, news_ukraine, tele_ukraine, tele_russia)
+```
+
+
+```{r}
+
+library(stringr)
+
+# Next, create a vector of all valid English letters
+english_letters <- c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
+
+# Use str_detect to filter out any words that contain characters other than the English letters in the vector
+df <- df %>% filter(str_detect(aspect, paste(english_letters, collapse = "|")) == TRUE)
+df <- df %>% filter(!str_detect(aspect, "jpg|com"))
+
+# finding total words and number of times the word has occured 
+total_words <- df %>% 
+  group_by(source) %>% 
+  summarize(total = sum(n))
+
+# Adding in the number number of times a word has occured and the total words
+df <- left_join(df, total_words)
+
+# Finding the frequency of words and sorting by rank
+freq_by_rank <- df %>% 
+  group_by(source) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+
+# Adding tf and idf values to the dataframe 
+tf_idf <- df %>%
+  bind_tf_idf(aspect, source, n) %>% 
+  mutate(source=factor(source, levels = c(
+    "Russian News Articles",
+    "Ukranian News Articles",
+    "Russian Telegram Messages",
+    "Ukranian Telegram Messages"
+    )))
+
+tf_idf
+
+# Looking at words with high tf-idf values
+tf_idf <- tf_idf %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+tf_idf
+
+# PLOTTING :)))))))
+tf_idf %>%
+  group_by(source) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  mutate(aspect = factor(aspect)) %>%
+  mutate(aspect = fct_reorder(aspect, tf_idf)) %>%
+  ggplot(aes(tf_idf, aspect, fill = source)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~source, ncol = 2, scales = "free") +
+  labs(x = NULL, y = NULL)
+ggsave("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/TD-IDF/aspect_tf_idf.png", plot = tf_plot, width = 8, height = 6)
+```
+
+```{r}
+# PLOTTING ONLY TELEGRAM #
+df_tele = rbind(tele_ukraine, tele_russia)
+
+# Next, create a vector of all valid English letters
+english_letters <- c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
+
+# Use str_detect to filter out any words that contain characters other than the English letters in the vector
+df_tele <- df_tele %>% filter(str_detect(aspect, paste(english_letters, collapse = "|")) == TRUE)
+df_tele <- df_tele %>% filter(!str_detect(aspect, "jpg|com"))
+
+# finding total words and number of times the word has occured 
+total_words <- df_tele %>% 
+  group_by(source) %>% 
+  summarize(total = sum(n))
+
+# Adding in the number number of times a word has occured and the total words
+df_tele <- left_join(df_tele, total_words)
+
+# Finding the frequency of words and sorting by rank
+freq_by_rank <- df_tele %>% 
+  group_by(source) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+
+# Adding tf and idf values to the dataframe 
+tf_idf_tele <- df_tele %>%
+  bind_tf_idf(aspect, source, n)
+tf_idf_tele
+
+# Looking at words with high tf-idf values
+tf_idf_tele %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+# PLOTTING :)))))))
+tf_idf_tele %>%
+  group_by(source) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(aspect, tf_idf), fill = source)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~source, ncol = 2, scales = "free") +
+  labs(title = "TF-IDF Values for Telegram", x=NULL, y = NULL)
+ggsave("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/TD-IDF/aspect_tf_idf.png", plot = tf_plot, width = 8, height = 6)
+```
+

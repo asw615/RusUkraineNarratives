@@ -1,0 +1,21 @@
+---
+title: "cogcomm"
+author: "Søren"
+date: "2022-11-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pacman)
+channels <- read_csv("/Users/sorenmeiner/Documents/telegram-analysis-master/json_data/pilotblog.csv")
+```
+```{r}
+setwd(".")
+result <- fromJSON(file = "../data/channel_messages.json")
+```
+
+

@@ -1,0 +1,130 @@
+---
+title: "TD-IDF"
+author: "Søren"
+date: "2022-12-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pacman)
+p_load(dplyr, janeaustenr, tidytext, tidyverse, forcats)
+setwd('.')
+```
+```{r}
+## BEFORE TRANSLATION USE THIS
+
+# reading in the file
+df_tele_ukraine <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_ukraine.csv")
+
+# removing NA
+df_tele_ukraine <- filter(df_tele_ukraine, !is.na(message))
+
+df2 <- tele_trans[(10083:62016),] # CHANGE THE 2 NUMBERS!
+df_tele_ukraine = subset(df_tele_ukraine, select = c(id,date, message, views, forwards, edit_date, post_author, peer_id))
+
+write_csv(df_tele_ukraine, "/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_ready_translate.csv")
+
+# For collecting translated data
+tele_trans <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_translate.csv")
+df2 <- tele_trans[-(10083:62016),] # CHANGE THE 2 NUMBERS!
+write_csv(df2, "/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_translate03.csv")
+```
+
+```{r}
+# Loading in data from the news articles and the telegram channels 
+news_russia <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/webscraper/csv_data/df_russia.csv")
+news_ukraine <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/webscraper/csv_data/df_ukraine.csv")
+tele <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/russian_tele_data/df_translate_final.csv")
+
+
+#Removing unnecessary columns
+tele_clean = subset(tele, select = c(english, date))
+
+# Making both newsarticles data and telegram look the same way
+tele_simple = subset(tele_clean, select = c(date, english))
+news_ukraine_simple = subset(news_ukraine, select = c(date_publish, maintext))
+news_russia_simple = subset(news_russia, select = c(date_publish, maintext))
+
+# Rename the "date_publish" and "maintext" columns to "date" and "message"
+colnames(news_russia_simple) <- c("date", "message", "source")
+colnames(news_ukraine_simple) <- c("date", "message", "source")
+colnames(tele_simple) <- c("date", "message", "source")
+
+
+# Adding in their source in a new column
+news_ukraine_simple <- mutate(news_ukraine_simple, source = "ukranian_newsarticles")
+news_russia_simple <- mutate(news_russia_simple, source = "russian_newsarticles")
+tele_simple <- mutate(tele_simple, source = "russian_telegram")
+
+# Adding both newsarticles and telegram channels to the same dataset
+df = rbind(news_russia_simple, news_ukraine_simple, tele_simple)
+```
+
+```{r}
+if (any(!is.na(tele$english))) {
+  # If the "english" column has any values that are not NA,
+  # this code will be executed
+  print("The 'english' column has values other than NA.")
+} else {
+  # If the "english" column has only NA values,
+  # this code will be executed
+  print("The 'english' column has only NA values.")
+}
+```
+
+```{r}
+# STOP WORDS
+stop_words <- read_csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/TD-IDF/stop_words.csv")
+
+```
+
+
+```{r}
+# unnesting/separating tokens in the maintext and counting words and authors
+df_words <- df %>%
+  unnest_tokens(word, message) %>%
+  filter(!word %in% stop_words$word) %>% # Filter out stop words
+  count(source, word, sort = TRUE)
+
+# finding total words and number of times the word has occured 
+total_words <- df_words %>% 
+  group_by(source) %>% 
+  summarize(total = sum(n))
+
+# Adding in the number number of times a word has occured and the total words
+df_words <- left_join(df_words, total_words)
+
+# Finding the frequency of words and sorting by rank
+freq_by_rank <- df_words %>% 
+  group_by(source) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+
+# Adding tf and idf values to the dataframe 
+tf_idf <- df_words %>%
+  bind_tf_idf(word, source, n)
+tf_idf
+
+# Looking at words with high tf-idf values
+tf_idf %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+# PLOTTING :)))))))
+tf_idf %>%
+  group_by(source) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = source)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~source, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+
+```
+
+

@@ -1,0 +1,100 @@
+---
+title: "Sentiment over time"
+author: "Søren"
+date: "2022-12-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pacman)
+p_load(tidytext, lubridate, tidyverse)
+```
+
+```{r}
+### UKRAINE TELEGRAM CHANNELS ###
+# Load the text data into a data frame
+tele_ukraine <- read.csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/ukraine_translate_final.csv")
+
+# Drop rows with missing values
+tele_ukraine <- tele_ukraine[complete.cases(tele_ukraine$english),]
+
+# Preprocess the text data by converting to lowercase and removing punctuation
+tele_ukraine$english <- tolower(tele_ukraine$english)
+tele_ukraine$english <- gsub("[[:punct:]]", "", tele_ukraine$english)
+
+# Split the text data into individual tokens
+tele_ukraine$tokens <- as.data.frame(unnest_tokens(na.omit(tele_ukraine), tokens, english))
+
+# Calculate the sentiment of each token
+tele_ukraine$sentiment <- get_sentiments(tele_ukraine$tokens)
+
+# Convert the 'date' column to datetime objects
+tele_ukraine$date <- ymd_hms(tele_ukraine$date)
+
+# Filter out rows with timestamps before 2022/01/01
+tele_ukraine <- tele_ukraine[tele_ukraine$date >= ymd("2022-01-01"),]
+
+# Extract the month from the 'date' column
+tele_ukraine$month <- format(tele_ukraine$date, "%Y-%m")
+
+# Aggregate the sentiment scores by time period (e.g., month)
+sentiment_by_month_tele_ukraine <- tele_ukraine %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment))
+
+# Visualize the sentiment over time using the ggplot2 library
+ggplot(sentiment_by_month_tele_ukraine, aes(x = month, y = mean_sentiment)) +
+  geom_line() +
+  xlab("Month") +
+  ylab("Sentiment Score") +
+  ggtitle("Sentiment Over Time")
+
+```
+
+```{r}
+### RUSSIAN TELEGRAM CHANNELS ###
+# Load the text data into a data frame
+tele_russia <- read.csv("/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/russia_translate_final.csv")
+
+# Drop rows with missing values
+tele_russia <- tele_russia[complete.cases(tele_russia$english),]
+
+# Preprocess the text data by converting to lowercase and removing punctuation
+tele_russia$english <- tolower(tele_ukraine$english)
+tele_russia$english <- gsub("[[:punct:]]", "", tele_russia$english)
+
+# Split the text data into individual tokens
+tele_russia$tokens <- as.data.frame(unnest_tokens(tele_russia, tokens, english))
+
+# Calculate the sentiment of each token
+tele_russia$sentiment <- get_sentiments(tele_russia$tokens)
+
+# Convert the 'date' column to datetime objects
+tele_russia$date <- ymd_hms(tele_russia$date)
+
+# Filter out rows with timestamps before 2022/01/01
+tele_russia <- tele_russia[tele_russia$date >= ymd("2022-01-01"),]
+
+# Extract the month from the 'date' column
+tele_russia$month <- format(tele_russia$date, "%Y-%m")
+
+# Aggregate the sentiment scores by time period (e.g., month)
+sentiment_by_month_tele_russia <- tele_russia %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment))
+
+# Visualize the sentiment over time using the ggplot2 library
+ggplot(sentiment_by_month_tele_russia, aes(x = month, y = mean_sentiment)) +
+  geom_line() +
+  xlab("Month") +
+  ylab("Sentiment Score") +
+  ggtitle("Sentiment Over Time")
+
+
+```
+
+

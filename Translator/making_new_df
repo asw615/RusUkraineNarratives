@@ -1,0 +1,10 @@
+# Read the DataFrame from the CSV file
+import pandas as pd
+
+
+df = pd.read_csv('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_simple.csv')
+
+# Drop rows with empty or null values in the 'message' column
+df = df.dropna(subset=['message'])
+
+df.to_csv('/Users/sorenmeiner/Library/CloudStorage/OneDrive-Aarhusuniversitet/CogComm exam/telegram-analysis-master/csv_data/df_no_na.csv')
